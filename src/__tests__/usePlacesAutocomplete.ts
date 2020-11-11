@@ -1,10 +1,16 @@
 import { renderHook } from "@testing-library/react-hooks";
 
 import usePlacesAutocomplete, {
-  HookArgs,
+  AutocompleteOptions,
   loadApiErr,
-} from "../usePlacesAutocomplete";
+} from "../Google/useGoogleAutocomplete";
 import _debounce from "../debounce";
+
+function flushPromises() {
+  jest.runAllTimers();
+  // eslint-disable-next-line compat/compat
+  return new Promise((resolve) => setImmediate(resolve));
+}
 
 jest.mock("../debounce");
 // @ts-expect-error
@@ -14,7 +20,7 @@ describe("usePlacesAutocomplete", () => {
   jest.useFakeTimers();
 
   const callbackName = "initMap";
-  const renderHelper = (args: HookArgs = {}) =>
+  const renderHelper = (args: AutocompleteOptions = {}) =>
     renderHook(() => usePlacesAutocomplete(args)).result;
 
   const val = "usePlacesAutocomplete so Cool 😎";
@@ -146,7 +152,7 @@ describe("usePlacesAutocomplete", () => {
     expect(result.current.value).toBe(val);
   });
 
-  it('should return "suggestions" correctly', () => {
+  it('should return "suggestions" correctly', async () => {
     let res = renderHelper();
     expect(res.current.suggestions).toEqual(defaultSuggestions);
 
@@ -163,13 +169,13 @@ describe("usePlacesAutocomplete", () => {
     });
 
     res.current.setValue(val);
-    jest.runAllTimers();
+    await flushPromises();
     expect(res.current.suggestions).toEqual(okSuggestions);
 
     global.google = getMaps("failure");
     res = renderHelper();
     res.current.setValue(val);
-    jest.runAllTimers();
+    await flushPromises();
     expect(res.current.suggestions).toEqual({
       loading: false,
       status: error,
@@ -177,10 +183,10 @@ describe("usePlacesAutocomplete", () => {
     });
   });
 
-  it("should clear suggestions", () => {
+  it("should clear suggestions", async () => {
     const result = renderHelper();
     result.current.setValue(val);
-    jest.runAllTimers();
+    await flushPromises();
     expect(result.current.suggestions).toEqual(okSuggestions);
 
     result.current.clearSuggestions();
